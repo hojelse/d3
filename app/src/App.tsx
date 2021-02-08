@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import './App.css';
 import * as d3 from 'd3';
-import data from "./graph.json";
+import data from "./simple-graph.json";
 import { cleanup } from "@testing-library/react";
 
 function App() {
@@ -27,8 +27,9 @@ function Chart() {
 
   const ref = React.useRef<HTMLDivElement>(null);
 
-  const height = 680;
-  const width = 680;
+  const svgDims = 500;
+  const height = 250;
+  const width = 250;
 
   let color = (d: any) => {
     const scale = d3.scaleOrdinal(d3.schemeCategory10);
@@ -73,8 +74,8 @@ function Chart() {
 
     const svg = d3.create("svg")
       .attr("viewBox", `${-width / 2}, ${-height / 2}, ${width}, ${height}`)
-      .attr("height", height)
-      .attr("width", width)
+      .attr("height", svgDims)
+      .attr("width", svgDims)
 
     const link = svg.append("g")
       .attr("stroke", "#999")
@@ -122,6 +123,9 @@ function Chart() {
 
   return (
     <div
+      style={{
+        outline: "solid 2px pink"
+      }}
       ref={ref}
     ></div>
   );
