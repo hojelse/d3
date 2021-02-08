@@ -1,46 +1,10 @@
 import React, { useEffect } from "react";
 import './App.css';
 import * as d3 from 'd3';
-
-const DATA = [
-  { x: 10, y: 20 },
-  { x: 20, y: 50 },
-  { x: 80, y: 90 }
-];
+import data from "./graph.json";
+import { cleanup } from "@testing-library/react";
 
 function App() {
-
-  useEffect(() => {
-    const margin = { top: 10, right: 40, bottom: 30, left: 30 },
-      width = 450 - margin.left - margin.right,
-      height = 400 - margin.top - margin.bottom;
-
-    const svg = d3
-      .select("#area")
-      .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .append("g")
-      .attr("transform", `translate(${margin.left}, ${margin.top})`);
-
-    const x = d3.scaleLinear().domain([0, 100]).range([0, width]);
-    svg
-      .append("g")
-      .attr("transform", `translate(0, ${height})`)
-      .call(d3.axisBottom(x));
-
-    const y = d3.scaleLinear().domain([0, 100]).range([height, 0]);
-    svg.append("g").call(d3.axisLeft(y));
-
-    svg
-      .selectAll("whatever")
-      .data(DATA)
-      .enter()
-      .append("circle")
-      .attr("cx", (d) => x(d.x))
-      .attr("cy", (d) => y(d.y))
-      .attr("r", 7);
-  }, []);
 
   return (
     <div
@@ -53,8 +17,113 @@ function App() {
         alignItems: "center"
       }}
     >
-      <svg id="area" height={400} width={500}></svg>
+      <Chart></Chart>
     </div>
+  );
+}
+
+
+function Chart() {
+
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  const height = 680;
+  const width = 680;
+
+  let color = (d: any) => {
+    const scale = d3.scaleOrdinal(d3.schemeCategory10);
+    return scale(d.group);
+  }
+
+  let drag = (simulation: any) => {
+
+    function dragstarted(event: any, d: any) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+
+    function dragged(event: any, d: any) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+
+    function dragended(event: any, d: any) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+
+    return d3.drag()
+      .on("start", dragstarted)
+      .on("drag", dragged)
+      .on("end", dragended);
+  }
+
+  useEffect(() => {
+    const links = data.links.map(d => Object.create(d));
+    const nodes = data.nodes.map(d => Object.create(d));
+
+    const simulation = d3.forceSimulation(nodes)
+      // @ts-ignore
+      .force("link", d3.forceLink(links).id(d => d.id))
+      .force("charge", d3.forceManyBody())
+      .force("x", d3.forceX())
+      .force("y", d3.forceY());
+
+    const svg = d3.create("svg")
+      .attr("viewBox", `${-width / 2}, ${-height / 2}, ${width}, ${height}`)
+      .attr("height", height)
+      .attr("width", width)
+
+    const link = svg.append("g")
+      .attr("stroke", "#999")
+      .attr("stroke-opacity", 0.6)
+      .selectAll("line")
+      .data(links)
+      .join("line")
+      .attr("stroke-width", d => Math.sqrt(d.value));
+
+    const node = svg.append("g")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 1.5)
+      .selectAll("circle")
+      .data(nodes)
+      .join("circle")
+      .attr("r", 5)
+      .attr("fill", color)
+      // @ts-ignore
+      .call(drag(simulation));
+
+    node.append("title")
+      .text(d => d.id);
+
+    simulation.on("tick", () => {
+      link
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
+
+      node
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y);
+    });
+
+    let container = ref.current
+    container.appendChild(svg.node());
+    
+    // Cleanup
+    return () => {
+      let container = ref.current;
+      container.removeChild(svg.node());
+    }
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+    ></div>
   );
 }
 
