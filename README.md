@@ -1,6 +1,6 @@
 # d3
 
-My first D3 (Data Driven Documents) project
+D3 (Data Driven Documents) demo project
 
 ## Project setup
 
